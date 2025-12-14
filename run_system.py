@@ -3,24 +3,22 @@
 
 import asyncio
 import os
-import time
 import signal
+import time
 
-# Добавляем пути для импорта
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.system.queues_dir import QueuesDirectory
-from src.system.system_wrapper import SystemComponentsContainer
-from src.satellite_simulator.satellite import Satellite
-from src.satellite_simulator.orbit_drawer import OrbitDrawer
-from src.satellite_simulator.camera import Camera
-from src.satellite_control_system.orbit_control import OrbitControl
-from src.satellite_control_system.optics_control import OpticsControl
-from src.satellite_control_system.security_monitor import SecurityMonitor
-from src.client.auth import authorize, AuthError
+from src.client.auth import AuthError, authorize
 from src.client.command_processor import CommandInterpreter, UserContext, parse_program
 from src.client.logger import setup_logger
+from src.satellite_control_system.optics_control import OpticsControl
+from src.satellite_control_system.orbit_control import OrbitControl
+from src.satellite_control_system.security_monitor import SecurityMonitor
+from src.satellite_simulator.camera import Camera
+from src.satellite_simulator.orbit_drawer import OrbitDrawer
+from src.satellite_simulator.satellite import Satellite
 from src.system.config import DEFAULT_LOG_LEVEL
+
+# Добавляем пути для импорта
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.system.queues_dir import QueuesDirectory
 from src.system.system_wrapper import SystemComponentsContainer
 
@@ -72,8 +70,7 @@ class SatelliteControlSystem:
 
         # 1. Монитор безопасности (первым!)
         security_monitor = SecurityMonitor(
-            queues_dir=self.queues_dir,
-            log_level=self.log_level
+            queues_dir=self.queues_dir, log_level=self.log_level
         )
         self.components.append(security_monitor)
 
@@ -89,17 +86,11 @@ class SatelliteControlSystem:
         self.components.append(satellite)
 
         # 3. Визуализатор орбиты
-        orbit_drawer = OrbitDrawer(
-            queues_dir=self.queues_dir,
-            log_level=self.log_level
-        )
+        orbit_drawer = OrbitDrawer(queues_dir=self.queues_dir, log_level=self.log_level)
         self.components.append(orbit_drawer)
 
         # 4. Камера
-        camera = Camera(
-            queues_dir=self.queues_dir,
-            log_level=self.log_level
-        )
+        camera = Camera(queues_dir=self.queues_dir, log_level=self.log_level)
         self.components.append(camera)
 
         # 5. Управление орбитой
@@ -161,16 +152,11 @@ class SatelliteControlSystem:
         self.log.info("=" * 60)
 
         # Создаем контекст пользователя
-        user_context = UserContext(
-            username=self.user,
-            role=self.role
-        )
+        user_context = UserContext(username=self.user, role=self.role)
 
         # Создаем интерпретатор команд
         interpreter = CommandInterpreter(
-            user_context=user_context,
-            logger=self.log,
-            queues_dir=self.queues_dir
+            user_context=user_context, logger=self.log, queues_dir=self.queues_dir
         )
 
         # Выполняем программу
