@@ -38,7 +38,7 @@ class OrbitDrawer(BaseCustomProcess):
             events_q_name=OrbitDrawer.events_q_name,
             event_source_name=OrbitDrawer.event_source_name,
             log_level=log_level)
-
+        
         # Set up figure
         self._num_frames = 50
         self._positions = []
@@ -46,7 +46,7 @@ class OrbitDrawer(BaseCustomProcess):
 
         world_map_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Equirectangular_projection_SW.jpg/1920px-Equirectangular_projection_SW.jpg"
         world_map_path = "./src/satellite_simulator/Earth.jpg"
-
+        
         try:
             with urllib.request.urlopen(world_map_url) as url_obj:
                 world_map = np.array(Image.open(url_obj))
@@ -72,7 +72,7 @@ class OrbitDrawer(BaseCustomProcess):
 
                 if not isinstance(event, Event):
                     return
-
+                
                 match(event.operation):
                     case 'update_orbit_data':
                         lat, lon = event.parameters
@@ -117,7 +117,7 @@ class OrbitDrawer(BaseCustomProcess):
             facecolor='red',
             alpha=0.3
         )
-        self._ax.add_patch(rect)
+        self._ax.add_patch(rect)        
         self._restricted_zone_patches[zone.zone_id] = rect
         self._fig.canvas.draw_idle()  # Update canvas
 
@@ -125,7 +125,7 @@ class OrbitDrawer(BaseCustomProcess):
         zone_rect = self._restricted_zone_patches.get(zone_id)
         if zone_rect is None:
             return False
-
+        
         zone_rect.remove()
         del self._restricted_zone_patches[zone_id]
 
@@ -149,7 +149,7 @@ class OrbitDrawer(BaseCustomProcess):
                 )
             )
             return self._trajectory, self._photos
-
+        
         self._ani = animation.FuncAnimation(self._fig, update,  init_func=init, blit=False, interval=200, cache_frame_data=False,)
         plt.xlabel("Longitude")
         plt.ylabel("Latitude")
