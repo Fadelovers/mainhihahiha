@@ -1,22 +1,25 @@
+from multiprocessing import Queue
+from time import sleep
+
 import numpy as np
 
-from time import sleep
-from multiprocessing import Queue
-
-from src.satellite_simulator.satellite import Satellite
-from src.satellite_simulator.orbit_drawer import OrbitDrawer
-from src.satellite_simulator.camera import Camera
 from src.satellite_control_system.optics_control import OpticsControl
+from src.satellite_control_system.restricted_zone import RestrictedZone
+from src.satellite_simulator.camera import Camera
+from src.satellite_simulator.orbit_drawer import OrbitDrawer
+from src.satellite_simulator.satellite import Satellite
+from src.system.config import (
+    CRITICALITY_STR,
+    DEFAULT_LOG_LEVEL,
+    LOG_DEBUG,
+    LOG_ERROR,
+    LOG_INFO,
+)
+from src.system.event_types import ControlEvent, Event
 from src.system.queues_dir import QueuesDirectory
 from src.system.system_wrapper import SystemComponentsContainer
-from src.system.event_types import Event, ControlEvent
-from src.satellite_control_system.restricted_zone import RestrictedZone
 
-from src.system.config import CRITICALITY_STR, LOG_DEBUG, \
-    LOG_ERROR, LOG_INFO, DEFAULT_LOG_LEVEL
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Создаем каталог очередей. Тут будут храниться очереди запросов для модулей системы.
     # Каждый модуль имеет свою очередь и работает как независимый процесс параллельно всем 
     # остальным модулям. При создании нового модуля в его конструктор помещается ссылка на
@@ -34,36 +37,26 @@ if __name__ == '__main__':
     sat = Satellite(
         altitude=1000e3,
         position_angle=0,
-        inclination=np.pi/3,
+        inclination=np.pi / 3,
         raan=0,
         queues_dir=queues_dir,
-        log_level=LOG_DEBUG)
+        log_level=LOG_DEBUG,
+    )
 
     # Симулятор камеры спутника
-    camera = Camera(
-        queues_dir=queues_dir,
-        log_level=LOG_DEBUG)
+    camera = Camera(queues_dir=queues_dir, log_level=LOG_DEBUG)
 
     # Отрисовщик
-    drawer = OrbitDrawer(
-        queues_dir=queues_dir,
-        log_level=LOG_DEBUG)
-    
-    # Модуль контроля оптики 
-    optics_control = OpticsControl(
-        queues_dir=queues_dir,
-        log_level=LOG_DEBUG)
+    drawer = OrbitDrawer(queues_dir=queues_dir, log_level=LOG_DEBUG)
+
+    # Модуль контроля оптики
+    optics_control = OpticsControl(queues_dir=queues_dir, log_level=LOG_DEBUG)
 
     # SystemComponentsContainer из файла system_wrapper.py получает на вход список созданных компонентов.
     # Это сделано для удобства управления системой, в помощью метода start() можно запустить все блоки 
     # системы сразу, с помощью метода stop() остановить работу, а методом clean() удалить все процессы.
     system_components = SystemComponentsContainer(
-        components=[
-            sat,
-            camera,
-            optics_control,
-            drawer],
-        log_level=LOG_DEBUG
+        components=[sat, camera, optics_control, drawer], log_level=LOG_DEBUG
     )
     
     # Запустим систему 
@@ -74,8 +67,8 @@ if __name__ == '__main__':
     camera_q = queues_dir.get_queue("camera")
     drawer_q = queues_dir.get_queue("orbit_drawer")
 
-    sleep(5)    # Пусть спутник немного полетает
-    
+    sleep(5)  # Пусть спутник немного полетает
+
     # Через метод put() можно добавить в очередь событие для обработки.
     # В данном примере показана отрисовка зон с ограничением на работу камеры.
     # Логику работы этих зон необходимо реализовать самостоятельно, функционал 
@@ -84,24 +77,40 @@ if __name__ == '__main__':
     # при использовании их внутри модулей указывайте имя соответствующего модуля. 
     # Далее задается получатель, название операции и аргументы. Для работы с зонами ограничений
     # уже реализован класс RestrictedZone, изучите его описание в файле restricted_zone.py
-    drawer_q.put(Event(None, 'orbit_drawer', 'draw_restricted_zone', RestrictedZone(1, 10, -10, 20, 20)))
-    drawer_q.put(Event(None, 'orbit_drawer', 'draw_restricted_zone', RestrictedZone(2, 50, -100, 80, -60)))
+    drawer_q.put(
+        Event(
+            None,
+            "orbit_drawer",
+            "draw_restricted_zone",
+            RestrictedZone(1, 10, -10, 20, 20),
+        )
+    )
+    drawer_q.put(
+        Event(
+            None,
+            "orbit_drawer",
+            "draw_restricted_zone",
+            RestrictedZone(2, 50, -100, 80, -60),
+        )
+    )
 
     sleep(5)
 
     # Так можно задать параметры новой орбиты
-    sat_q.put(Event(
-        source=None,
-        destination="satellite",
-        operation='change_orbit',
-        parameters=[900e3, np.pi/4, np.pi/3]))
-    
+    sat_q.put(
+        Event(
+            source=None,
+            destination="satellite",
+            operation="change_orbit",
+            parameters=[900e3, np.pi / 4, np.pi / 3],
+        )
+    )
+
     #  Подождем пока спутник летит на новую орбиту
     sleep(5)
     
     # Снимем ограничения с одной из зон
-    drawer_q.put(Event(None, 'orbit_drawer', 'clear_restricted_zone', 1))
-
+    drawer_q.put(Event(None, "orbit_drawer", "clear_restricted_zone", 1))
 
     # Запросим несколько снимков
     for i in range(0, 15):
@@ -110,10 +119,12 @@ if __name__ == '__main__':
                 source=None,
                 destination="camera",
                 operation="request_photo",
-                parameters=None))
-        sleep(0.2)
+                parameters=None,
+            )
+        )
+        sleep(0.02)
 
-    sleep(10) # Пусть спутник еще немного полетает
-    
-    system_components.stop() # Остановим системы
-    system_components.clean() # Очистик систему
+    sleep(10)  # Пусть спутник еще немного полетает
+
+    system_components.stop()  # Остановим системы
+    system_components.clean()  # Очистик систему
